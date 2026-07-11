@@ -1,27 +1,4 @@
-Modo IA
-Tudo
-Imagens
-Vídeos
-Notícias
-Maps
-Shopping
-Livros
-Voos
-Finanças
 
-14 sites
-Sim, dá para fazer igual, e inclusive muitas pessoas fazem para treinar programação. O jogo do dinossauro (conhecido como T-Rex Runner) faz parte do Chromium, que é o projeto de código aberto (open-source) da Google que serve de base para o navegador Chrome. 
-
-YouTube
-·Renan Silva - Criação de Jogos
- +2
-No entanto, existem algumas regras de direitos autorais importantes que você precisa seguir:
-⚙️ Mecânica do Jogo (Livre)
-As mecânicas do jogo — como correr infinitamente em linha reta, pular cactos e desviar de pterodáctilos — não podem ser patenteadas ou protegidas por direitos autorais. Você é 100% livre para criar um jogo idêntico em funcionamento usando qualquer linguagem de programação (como JavaScript, Python ou Scratch). 
-
-YouTube
-·Ripka Maker
- +4
 🎨 Arte e Imagens (Propriedade da Google)
 O visual pixelado do dinossauro T-Rex, os cactos específicos e os pterodáctilos foram desenhados por designers da Google e são protegidos por propriedade intelectual. 
 
