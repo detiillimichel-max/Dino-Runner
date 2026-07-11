@@ -92,27 +92,29 @@ let score = 0;
 let highScore = localStorage.getItem("dinoHighScore") ? parseInt(localStorage.getItem("dinoHighScore")) : 0;
 let gameOver = false;
 let gameSpeed = 5;
+let lives = 3; // Sistema de Vidas adicionado
+let invulnerableFrames = 0; // Frames de imunidade ao tomar dano
 
-// Configurações do Personagem Principal (Mamute)
+// Configurações do Personagem Principal (Mamute aumentado para 60px)
 const dino = {
     x: 50,
-    y: 190,
-    width: 35,
-    height: 35,
+    y: 165,
+    width: 60,
+    height: 60,
     vy: 0,
     gravity: 0.6,
-    jumpForce: -12,
+    jumpForce: -13, // Ajustado levemente para compensar o peso do tamanho
     isJumping: false,
     emoji: "🦣"
 };
 
-// Configurações dos Obstáculos
+// Configurações dos Obstáculos (Aumentados para 55px)
 const obstacles = [];
 const obstacleConfig = {
-    width: 35,
-    height: 35,
-    minInterval: 80,
-    nextInterval: 100
+    width: 55,
+    height: 55,
+    minInterval: 70,
+    nextInterval: 90
 };
 let frameCount = 0;
 
@@ -154,12 +156,16 @@ function spawnObstacle() {
             emoji: randomEmoji
         });
         frameCount = 0;
-        obstacleConfig.nextInterval = Math.floor(Math.random() * 60) + obstacleConfig.minInterval;
+        obstacleConfig.nextInterval = Math.floor(Math.random() * 50) + obstacleConfig.minInterval;
     }
 }
 
 function update() {
     if (gameOver) return;
+
+    if (invulnerableFrames > 0) {
+        invulnerableFrames--;
+    }
 
     dino.vy += dino.gravity;
     dino.y += dino.vy;
@@ -174,19 +180,26 @@ function update() {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         obstacles[i].x -= gameSpeed;
 
-        // Detecção de colisão (com margem de ajuste fino)
+        // Detecção de colisão por proximidade (ajustada para os emojis maiores)
         if (
-            dino.x + 5 < obstacles[i].x + obstacles[i].width &&
-            dino.x + dino.width - 5 > obstacles[i].x &&
-            dino.y + 5 < obstacles[i].y + obstacles[i].height &&
+            invulnerableFrames === 0 &&
+            dino.x + 10 < obstacles[i].x + obstacles[i].width &&
+            dino.x + dino.width - 10 > obstacles[i].x &&
+            dino.y + 10 < obstacles[i].y + obstacles[i].height &&
             dino.y + dino.height > obstacles[i].y
         ) {
-            gameOver = true;
             playSound('hit');
+            lives--; // Perde uma vida
             
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem("dinoHighScore", highScore);
+            if (lives <= 0) {
+                gameOver = true;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem("dinoHighScore", highScore);
+                }
+            } else {
+                // Fica invulnerável por 90 frames (~1.5 segundos)
+                invulnerableFrames = 90; 
             }
         }
 
@@ -215,28 +228,36 @@ function draw() {
 
     ctx.textBaseline = "top";
 
-    // DESENHA O MAMUTE ESPELHADO (Para olhar para a direita)
-    ctx.save(); // Salva o estado atual do canvas
-    ctx.font = `${dino.height}px Arial`;
-    // Move a origem para a posição X do mamute mais a sua largura para o espelhamento funcionar no lugar certo
-    ctx.translate(dino.x + dino.width, dino.y); 
-    ctx.scale(-1, 1); // Inverte horizontalmente
-    ctx.textAlign = "left";
-    ctx.fillText(dino.emoji, 0, 0); // Desenha na posição corrigida
-    ctx.restore(); // Restaura o canvas para o padrão para não afetar os outros elementos
+    // DESENHA O MAMUTE ESPELHADO (Com efeito de piscar se estiver invulnerável)
+    if (invulnerableFrames === 0 || Math.floor(invulnerableFrames / 5) % 2 === 0) {
+        ctx.save();
+        ctx.font = `${dino.height}px Arial`;
+        ctx.translate(dino.x + dino.width, dino.y); 
+        ctx.scale(-1, 1);
+        ctx.textAlign = "left";
+        ctx.fillText(dino.emoji, 0, 0);
+        ctx.restore();
+    }
 
-    // Desenha os Obstáculos Aleatórios (Olhando para a esquerda normalmente)
+    // Desenha os Obstáculos
     ctx.textAlign = "left";
     for (let obs of obstacles) {
         ctx.font = `${obs.height}px Arial`;
         ctx.fillText(obs.emoji, obs.x, obs.y);
     }
 
-    // Desenha a Pontuação Atual e o Recorde
+    // Desenha as Vidas (Corações no canto esquerdo superior)
+    ctx.textAlign = "left";
+    ctx.font = "22px Arial";
+    let hearts = "";
+    for(let i = 0; i < lives; i++) hearts += "❤️";
+    ctx.fillText(hearts, 20, 20);
+
+    // Desenha a Pontuação Atual e o Recorde no canto direito superior
     ctx.fillStyle = "#535353";
     ctx.font = "18px Arial";
     ctx.textAlign = "right";
-    ctx.fillText(`HI: ${highScore}   Score: ${score}`, canvas.width - 20, 30);
+    ctx.fillText(`HI: ${highScore}   Score: ${score}`, canvas.width - 20, 25);
 
     // Tela de Game Over
     if (gameOver) {
@@ -254,12 +275,14 @@ function draw() {
 
 function resetGame() {
     score = 0;
+    lives = 3; // Reseta as vidas
     gameOver = false;
     gameSpeed = 5;
     obstacles.length = 0;
     dino.y = canvas.height - dino.height;
     dino.vy = 0;
     frameCount = 0;
+    invulnerableFrames = 0;
     loop();
 }
 
@@ -275,4 +298,3 @@ loop();
 </script>
 </body>
 </html>
-
