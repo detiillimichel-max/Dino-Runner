@@ -2,15 +2,13 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dino Runner Clone</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            /* Evita zoom indesejado ao dar dois toques na tela do celular */
-            touch-action: manipulation; 
         }
         body {
             background: #f7f7f7;
@@ -20,7 +18,7 @@
             height: 100vh;
             font-family: Arial, sans-serif;
             overflow: hidden;
-            padding: 10px;
+            touch-action: manipulation; 
         }
         #gameCanvas {
             background: #fff;
@@ -39,7 +37,13 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Contexto de Áudio para criar sons via código
+// Lista de obstáculos fornecida por você
+const obstacleEmojis = [
+    "🦛","🦒","🦍","🐒","🐆","🐪","🐫","🐦","🐓","🐔",
+    "🐣","🐤","🐥","  ","🦆","🦢","🦤","🦜","🦉","🦅",
+    "🌱","☘️","🍀","🪴","🌵","🌴","🌵","🔥","⚡","☀️"
+];
+
 let audioCtx = null;
 
 function initAudio() {
@@ -89,63 +93,65 @@ let highScore = localStorage.getItem("dinoHighScore") ? parseInt(localStorage.ge
 let gameOver = false;
 let gameSpeed = 5;
 
-// Configurações do Dinossauro (Bloco Azul)
+// Configurações do Personagem Principal (Mamute)
 const dino = {
     x: 50,
     y: 190,
-    width: 30,
-    height: 40,
+    width: 35,
+    height: 35,
     vy: 0,
     gravity: 0.6,
     jumpForce: -12,
-    isJumping: false
+    isJumping: false,
+    emoji: "🦣"
 };
 
-// Configurações dos Obstáculos (Blocos Vermelhos)
+// Configurações dos Obstáculos
 const obstacles = [];
 const obstacleConfig = {
-    width: 20,
-    height: 40,
+    width: 35,
+    height: 35,
     minInterval: 80,
     nextInterval: 100
 };
 let frameCount = 0;
 
-// Função principal de interação (Garante que funciona em PC e Celular)
 function handleAction() {
-    initAudio(); // Ativa áudio no primeiro clique
+    initAudio();
     
-    if (!gameOver && !dino.isJumping) {
+    if (!dino.isJumping && !gameOver) {
         dino.vy = dino.jumpForce;
         dino.isJumping = true;
         playSound('jump');
-    } else if (gameOver) {
+    }
+    if (gameOver) {
         resetGame();
     }
 }
 
-// Captura de comandos do Computador (Teclado)
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" || e.code === "ArrowUp") {
-        e.preventDefault(); // Evita que a página role para baixo ao apertar Espaço
+        e.preventDefault();
         handleAction();
     }
 });
 
-// Captura de comandos do Celular (Toque na Tela)
 window.addEventListener("touchstart", (e) => {
-    e.preventDefault(); // Evita comportamentos de zoom ou rolagem do navegador
+    e.preventDefault();
     handleAction();
 }, { passive: false });
 
 function spawnObstacle() {
     frameCount++;
     if (frameCount > obstacleConfig.nextInterval) {
+        const randomEmoji = obstacleEmojis[Math.floor(Math.random() * obstacleEmojis.length)];
+        
         obstacles.push({
             x: canvas.width,
             y: canvas.height - obstacleConfig.height,
             width: obstacleConfig.width,
-            height: obstacleConfig.height
+            height: obstacleConfig.height,
+            emoji: randomEmoji
         });
         frameCount = 0;
         obstacleConfig.nextInterval = Math.floor(Math.random() * 60) + obstacleConfig.minInterval;
@@ -155,11 +161,9 @@ function spawnObstacle() {
 function update() {
     if (gameOver) return;
 
-    // Física do Dinossauro
     dino.vy += dino.gravity;
     dino.y += dino.vy;
 
-    // Colisão com o chão
     const groundY = canvas.height - dino.height;
     if (dino.y > groundY) {
         dino.y = groundY;
@@ -167,15 +171,14 @@ function update() {
         dino.isJumping = false;
     }
 
-    // Movimentação dos obstáculos
     for (let i = obstacles.length - 1; i >= 0; i--) {
         obstacles[i].x -= gameSpeed;
 
-        // Detecção de colisão
+        // Detecção de colisão (com margem de ajuste fino)
         if (
-            dino.x < obstacles[i].x + obstacles[i].width &&
-            dino.x + dino.width > obstacles[i].x &&
-            dino.y < obstacles[i].y + obstacles[i].height &&
+            dino.x + 5 < obstacles[i].x + obstacles[i].width &&
+            dino.x + dino.width - 5 > obstacles[i].x &&
+            dino.y + 5 < obstacles[i].y + obstacles[i].height &&
             dino.y + dino.height > obstacles[i].y
         ) {
             gameOver = true;
@@ -187,7 +190,6 @@ function update() {
             }
         }
 
-        // Remove obstáculos e soma pontos
         if (!gameOver && obstacles[i].x + obstacles[i].width < 0) {
             obstacles.splice(i, 1);
             score++;
@@ -203,14 +205,31 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Desenha o Dinossauro (Retângulo Azul)
-    ctx.fillStyle = "#2196F3";
-    ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+    // Desenha a linha do chão
+    ctx.strokeStyle = "#535353";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.stroke();
 
-    // Desenha os Obstáculos (Retângulos Vermelhos)
-    ctx.fillStyle = "#F44336";
+    ctx.textBaseline = "top";
+
+    // DESENHA O MAMUTE ESPELHADO (Para olhar para a direita)
+    ctx.save(); // Salva o estado atual do canvas
+    ctx.font = `${dino.height}px Arial`;
+    // Move a origem para a posição X do mamute mais a sua largura para o espelhamento funcionar no lugar certo
+    ctx.translate(dino.x + dino.width, dino.y); 
+    ctx.scale(-1, 1); // Inverte horizontalmente
+    ctx.textAlign = "left";
+    ctx.fillText(dino.emoji, 0, 0); // Desenha na posição corrigida
+    ctx.restore(); // Restaura o canvas para o padrão para não afetar os outros elementos
+
+    // Desenha os Obstáculos Aleatórios (Olhando para a esquerda normalmente)
+    ctx.textAlign = "left";
     for (let obs of obstacles) {
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.font = `${obs.height}px Arial`;
+        ctx.fillText(obs.emoji, obs.x, obs.y);
     }
 
     // Desenha a Pontuação Atual e o Recorde
@@ -229,7 +248,7 @@ function draw() {
         ctx.textAlign = "center";
         ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
         ctx.font = "18px Arial";
-        ctx.fillText("Toque na tela ou ESPAÇO para reiniciar", canvas.width / 2, canvas.height / 2 + 25);
+        ctx.fillText("Toque na tela ou Espaço para reiniciar", canvas.width / 2, canvas.height / 2 + 25);
     }
 }
 
@@ -256,3 +275,4 @@ loop();
 </script>
 </body>
 </html>
+
